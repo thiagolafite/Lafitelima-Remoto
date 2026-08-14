@@ -723,14 +723,32 @@ button {
   color: var(--accent-cyan);
 }
 
-.preview-container {
-  background-color: #000;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  position: relative;
-  aspect-ratio: 16/9;
-  border: 1px solid var(--bg-card-border);
-  margin-bottom: 14px;
+.host-active-status-box {
+  background-color: #0b1120;
+  border: 1px solid var(--accent-cyan);
+  border-radius: var(--radius-md);
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.status-icon-large {
+  font-size: 3rem;
+}
+
+.host-active-status-box h3 {
+  font-size: 1.3rem;
+  color: var(--text-main);
+}
+
+.host-active-status-box p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  max-width: 500px;
 }
 
 .preview-header {

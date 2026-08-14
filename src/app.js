@@ -587,9 +587,16 @@ function createPeerConnection() {
     addLog('webrtc', `Estado WebRTC: ${state.toUpperCase()}`);
     if (state === 'connected') {
       updateStatusBadge('connected', 'Conectado (Ao Vivo)');
-      if (currentRole === 'viewer') videoPlaceholder.style.display = 'none';
+      if (currentRole === 'viewer') {
+        videoPlaceholder.style.display = 'none';
+        remoteVideo.play().catch(e => {});
+      }
     } else if (state === 'failed' || state === 'disconnected') {
       updateStatusBadge('disconnected', `WebRTC ${state}`);
+      if (state === 'failed' && peerConnection) {
+        addLog('warning', 'Tentando recuperar conexão WebRTC via TURN Relay...');
+        try { peerConnection.restartIce(); } catch (e) {}
+      }
     }
   };
 
@@ -597,14 +604,23 @@ function createPeerConnection() {
     const iceState = peerConnection.iceConnectionState;
     addLog('webrtc', `ICE State: ${iceState.toUpperCase()}`);
     if (iceState === 'connected' || iceState === 'completed') {
-      if (currentRole === 'viewer') videoPlaceholder.style.display = 'none';
+      if (currentRole === 'viewer') {
+        videoPlaceholder.style.display = 'none';
+        remoteVideo.play().catch(e => {});
+      }
     }
   };
 
   peerConnection.ontrack = (event) => {
     addLog('webrtc', '📺 Stream de vídeo recebido! Exibindo imagem remota...');
     remoteVideo.srcObject = event.streams[0];
-    videoPlaceholder.style.display = 'none';
+    remoteVideo.muted = true;
+    remoteVideo.play().then(() => {
+      videoPlaceholder.style.display = 'none';
+    }).catch(err => {
+      console.log('Play error:', err);
+      videoPlaceholder.style.display = 'none';
+    });
   };
 }
 

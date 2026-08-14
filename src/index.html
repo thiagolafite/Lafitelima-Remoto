@@ -40,7 +40,7 @@
           <!-- SEÇÃO SUPERIOR: LISTA DE COMPUTADORES DISPONÍVEIS NA REDE/INTERNET -->
           <div class="card device-list-card">
             <div class="card-header-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/></svg>
               <div>
                 <h3>Computadores Disponíveis para Acesso (1-Clique)</h3>
                 <p>Clique no computador desejado abaixo para iniciar a conexão remota instantaneamente.</p>
@@ -69,8 +69,8 @@
                 <input type="password" id="unattendedPasswordInput" placeholder="Defina uma senha (opcional)" class="input-sm">
               </div>
 
-              <!-- Escondido do frontend: a URL é preenchida no backend -->
               <input type="hidden" id="serverUrlInput" value="ws://localhost:8080">
+              <select id="screenSelect" style="display: none;"></select>
             </div>
           </div>
 
@@ -95,23 +95,24 @@
         </div>
       </div>
 
-      <!-- TELA DE TRANSMISSÃO HOST ATIVA -->
+      <!-- TELA DE TRANSMISSÃO HOST ATIVA (LIMPA SEM ESPELHAMENTO INFINITO) -->
       <section id="hostView" class="view-section">
         <div class="card host-active-card">
           <div class="host-active-header">
             <div class="host-info">
               <span class="pulse-dot red"></span>
               <div>
-                <h2>Transmissão ao Vivo Ativa</h2>
-                <p id="hostActiveSubtext">Seu computador está sendo acessado remotamente</p>
+                <h2>Sessão Remota Ativa</h2>
+                <p id="hostActiveSubtext">Seu computador está sendo acessado remotamente com sucesso.</p>
               </div>
             </div>
             <button id="stopHostBtn" class="btn-danger">Encerrar Sessão</button>
           </div>
 
-          <div class="preview-container">
-            <div class="preview-header">Prévia Local do Monitor Transmitido</div>
-            <video id="hostLocalPreview" autoplay muted playsinline></video>
+          <div class="host-active-status-box">
+            <div class="status-icon-large">💻 ➔ 🖥️</div>
+            <h3>Transmissão de Vídeo e Controle Ativos</h3>
+            <p>O vídeo da sua tela e os comandos de mouse e teclado estão sendo transmitidos em tempo real para o computador conectado.</p>
           </div>
         </div>
       </section>
@@ -143,7 +144,7 @@
           </div>
 
           <div class="video-container">
-            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="remoteVideo" autoplay playsinline muted></video>
             <div id="videoPlaceholder" class="video-placeholder">
               <div class="spinner"></div>
               <p id="placeholderText">Estabelecendo conexão direta com o computador remoto...</p>
