@@ -21,7 +21,7 @@ const WEBRTC_CONFIG = {
 };
 
 // URL padrão do Servidor de Sinalização na Nuvem para Conexão Global
-const DEFAULT_CLOUD_SERVER = 'wss://openremote.glitch.me';
+const DEFAULT_CLOUD_SERVER = 'wss://lafitelima-remoto.onrender.com';
 const DEFAULT_LOCAL_SERVER = 'ws://localhost:8080';
 
 // --- ESTADO GLOBAL DA APLICAÇÃO ---
@@ -102,15 +102,14 @@ async function initDeviceIdentity() {
   myHostNameDisplay.textContent = `${myHostname} (${myPlatform.toUpperCase()})`;
 }
 
-// Obtém a URL do servidor configurada em server-config.json
+// Obtém a URL do servidor configurada em server-config.json via IPC do Electron
 async function getPreconfiguredServerUrl() {
-  try {
-    const res = await fetch('../server-config.json');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.serverUrl) return data.serverUrl;
-    }
-  } catch (e) {}
+  if (window.electronAPI && window.electronAPI.getServerConfig) {
+    try {
+      const config = await window.electronAPI.getServerConfig();
+      if (config && config.serverUrl) return config.serverUrl;
+    } catch (e) {}
+  }
   return DEFAULT_CLOUD_SERVER;
 }
 

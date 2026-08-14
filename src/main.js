@@ -121,6 +121,22 @@ ipcMain.handle('get-cli-args', () => {
   };
 });
 
+const fs = require('fs');
+
+/**
+ * HANDLER IPC: Lê as configurações do backend (server-config.json) de forma segura.
+ */
+ipcMain.handle('get-server-config', () => {
+  try {
+    const configPath = path.join(__dirname, '../server-config.json');
+    if (fs.existsSync(configPath)) {
+      const content = fs.readFileSync(configPath, 'utf8');
+      return JSON.parse(content);
+    }
+  } catch (e) {}
+  return { serverUrl: 'wss://lafitelima-remoto.onrender.com' };
+});
+
 // Inicialização do App Electron
 app.whenReady().then(() => {
   console.log('[Main Process] Electron pronto. Criando janela...');

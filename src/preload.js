@@ -29,7 +29,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /**
    * Obtém informações nativas deste dispositivo (Hostname, OS).
    */
-  getDeviceInfo: () => ipcRenderer.invoke('get-device-info')
+  getDeviceInfo: () => ipcRenderer.invoke('get-device-info'),
+
+  /**
+   * Obtém a configuração do servidor salva no backend.
+   */
+  getServerConfig: () => ipcRenderer.invoke('get-server-config')
 });
 
 console.log('[Preload] ContextBridge exposto com sucesso (window.electronAPI).');
