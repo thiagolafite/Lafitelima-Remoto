@@ -1,23 +1,21 @@
 /**
- * LÓGICA PRINCIPAL DO CLIENTE (Conexão Global com STUN/TURN Relay - Casa <-> Trabalho)
- * ===================================================================================
+ * LÓGICA PRINCIPAL DO CLIENTE (Sistema Dual-Engine: WebRTC STUN/TURN + WebSocket Turbo Relay)
+ * =========================================================================================
  * 
- * Inclui servidores TURN Relay (Porta 443 TCP/UDP) para furar firewalls corporativos
- * estritos, garantindo que o vídeo e o controle funcionem mesmo atrás de roteadores restritos.
+ * Garante acesso remoto 100% garantido mesmo em redes com firewalls corporativos restritos.
+ * Se a conexão P2P WebRTC for bloqueada pelo roteador da empresa, o sistema chaveia
+ * automaticamente para a transmissão de alta velocidade via WebSocket (wss://lafitelima-remoto.onrender.com).
  */
 
-// Lista completa de servidores STUN + TURN Relay (Porta 443 TCP/HTTPS) para furar Firewalls Corporativos
+// Lista de servidores STUN + TURN Relay para furar Firewalls Empresariais
 const WEBRTC_CONFIG = {
   iceServers: [
-    // STUN da Google e Mozilla
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
     { urls: 'stun:stun4.l.google.com:19302' },
     { urls: 'stun:stun.services.mozilla.com' },
-    
-    // TURN Relay OpenRelay (Porta 80 e 443 TCP/UDP - Bypassa Firewalls Empresariais)
     { urls: 'stun:openrelay.metered.ca:80' },
     {
       urls: 'turn:openrelay.metered.ca:80',
@@ -58,6 +56,15 @@ let isRemoteControlEnabled = true; // Status se controle remoto está ativado no
 let localStream = null;           // MediaStream da tela local do Host
 let activeServerUrl = null;
 
+// Sistema de fallback para transmissão de quadros via WebSocket
+let frameInterval = null;
+const offscreenCanvas = document.createElement('canvas');
+const offscreenCtx = offscreenCanvas.getContext('2d');
+const hiddenVideo = document.createElement('video');
+hiddenVideo.autoplay = true;
+hiddenVideo.muted = true;
+hiddenVideo.playsInline = true;
+
 // --- REFERÊNCIAS AOS ELEMENTOS DO DOM ---
 const setupView = document.getElementById('setupView');
 const hostView = document.getElementById('hostView');
@@ -79,6 +86,9 @@ const stopHostBtn = document.getElementById('stopHostBtn');
 
 const viewerRoomCodeDisplay = document.getElementById('viewerRoomCodeDisplay');
 const remoteVideo = document.getElementById('remoteVideo');
+const remoteCanvas = document.getElementById('remoteCanvas');
+const ctx = remoteCanvas ? remoteCanvas.getContext('2d') : null;
+
 const videoPlaceholder = document.getElementById('videoPlaceholder');
 const placeholderText = document.getElementById('placeholderText');
 const controlToggleBtn = document.getElementById('controlToggleBtn');
@@ -220,9 +230,6 @@ function autoConnectSignaling(serverUrl) {
   };
 }
 
-/**
- * Tenta conectar ao servidor local de fallback caso a nuvem esteja offline ou vice-versa.
- */
 function handleConnectionFailure() {
   if (activeServerUrl !== DEFAULT_LOCAL_SERVER) {
     addLog('info', 'Alternando para o servidor de sinalização local (ws://localhost:8080)...');
@@ -235,7 +242,7 @@ function handleConnectionFailure() {
    ========================================================================== */
 
 async function handleSignalingMessage(data) {
-  const { type, devices, deviceName, offer, answer, candidate, message } = data;
+  const { type, devices, deviceName, offer, answer, candidate, message, frameData, payload } = data;
 
   switch (type) {
     case 'device-list-update':
@@ -244,15 +251,16 @@ async function handleSignalingMessage(data) {
       break;
 
     case 'start-webrtc-stream':
-      addLog('signaling', '⚡ Conexão de 1-Clique recebida! Transmitindo tela via WebRTC STUN/TURN...');
+      addLog('signaling', '⚡ Conexão de 1-Clique recebida! Transmitindo tela via WebRTC + Turbo Relay...');
       currentRole = 'host';
       showView('host');
       await loadScreenSources();
       await startHostWebRTC();
+      startHostFrameRelay();
       break;
 
     case 'connecting-to-host':
-      addLog('info', `Iniciando negociação de firewall (STUN/TURN Relay) com "${deviceName}"...`);
+      addLog('info', `Iniciando negociação com "${deviceName}"...`);
       break;
 
     case 'auth-failed':
@@ -263,16 +271,39 @@ async function handleSignalingMessage(data) {
       }
       break;
 
+    case 'screen-frame':
+      if (currentRole === 'viewer') {
+        const img = new Image();
+        img.onload = () => {
+          if (remoteCanvas && ctx) {
+            remoteCanvas.width = img.width;
+            remoteCanvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+          }
+          videoPlaceholder.style.display = 'none';
+        };
+        img.src = frameData;
+      }
+      break;
+
+    case 'remote-input':
+      if (currentRole === 'host') {
+        if (window.electronAPI && window.electronAPI.simulateRemoteInput) {
+          window.electronAPI.simulateRemoteInput(payload);
+        }
+      }
+      break;
+
     case 'offer':
       if (currentRole === 'viewer') {
-        addLog('webrtc', '📥 SDP Offer recebido! Conectando via TURN Relay...');
+        addLog('webrtc', '📥 SDP Offer recebido! Conectando...');
         await handleOfferReceived(offer);
       }
       break;
 
     case 'answer':
       if (currentRole === 'host') {
-        addLog('webrtc', '📥 SDP Answer recebido! Handshake de vídeo concluído.');
+        addLog('webrtc', '📥 SDP Answer recebido! Handshake concluído.');
         await handleAnswerReceived(answer);
       }
       break;
@@ -389,7 +420,7 @@ function connectToDeviceDirect(targetDeviceId, targetDeviceName, passwordInput) 
 }
 
 /* ==========================================================================
-   3. CAPTURA DE TELA E WEBRTC (COM FALLBACKS E DIAGNÓSTICO TURN)
+   3. CAPTURA DE TELA E DUAL-ENGINE TRANSMISSÃO (WEBRTC + TURBO RELAY)
    ========================================================================== */
 
 async function loadScreenSources() {
@@ -403,15 +434,6 @@ async function loadScreenSources() {
         option.textContent = source.name;
         screenSelect.appendChild(option);
       });
-
-      screenSelect.onchange = async () => {
-        await captureScreenStream(screenSelect.value);
-        if (peerConnection && localStream) {
-          const videoTrack = localStream.getVideoTracks()[0];
-          const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-          if (sender) sender.replaceTrack(videoTrack);
-        }
-      };
     }
 
     const targetId = (sources && sources.length > 0) ? sources[0].id : null;
@@ -459,6 +481,29 @@ async function captureScreenStream(sourceId) {
   }
 }
 
+function startHostFrameRelay() {
+  if (!localStream) return;
+  hiddenVideo.srcObject = localStream;
+  hiddenVideo.play().catch(e => {});
+
+  if (frameInterval) clearInterval(frameInterval);
+  frameInterval = setInterval(() => {
+    if (currentRole !== 'host' || !ws || ws.readyState !== WebSocket.OPEN) return;
+    if (hiddenVideo.videoWidth > 0 && hiddenVideo.videoHeight > 0) {
+      offscreenCanvas.width = 1280;
+      offscreenCanvas.height = 720;
+      offscreenCtx.drawImage(hiddenVideo, 0, 0, 1280, 720);
+      const frameData = offscreenCanvas.toDataURL('image/jpeg', 0.55);
+      ws.send(JSON.stringify({ type: 'screen-frame', frameData }));
+    }
+  }, 50); // ~20 FPS Turbo WebSocket Relay
+}
+
+function stopHostFrameRelay() {
+  if (frameInterval) { clearInterval(frameInterval); frameInterval = null; }
+  hiddenVideo.srcObject = null;
+}
+
 async function startHostWebRTC() {
   if (!localStream) return;
   createPeerConnection();
@@ -500,12 +545,12 @@ async function handleAnswerReceived(answer) {
 }
 
 /* ==========================================================================
-   4. DATACHANNEL E CONTROLE REMOTO DE MOUSE/TECLADO
+   4. DATACHANNEL & WEBSOCKET FALLBACK CONTROLE REMOTO
    ========================================================================== */
 
 function setupDataChannel(channel) {
   dataChannel = channel;
-  dataChannel.onopen = () => addLog('success', '🎮 Controle Remoto Ativo!');
+  dataChannel.onopen = () => addLog('success', '🎮 Controle Remoto Ativo (P2P)!');
   dataChannel.onmessage = (event) => {
     if (currentRole === 'host') {
       try {
@@ -519,20 +564,28 @@ function setupDataChannel(channel) {
 }
 
 function setupViewerInputListeners() {
+  const targetElement = remoteCanvas || remoteVideo;
+
   const sendControlEvent = (payload) => {
     if (!isRemoteControlEnabled) return;
     if (dataChannel && dataChannel.readyState === 'open') {
       dataChannel.send(JSON.stringify(payload));
+    } else if (ws && ws.readyState === WebSocket.OPEN && activeTargetDeviceId) {
+      ws.send(JSON.stringify({
+        type: 'remote-input',
+        targetDeviceId: activeTargetDeviceId,
+        payload
+      }));
     }
   };
 
   let lastMove = 0;
-  remoteVideo.addEventListener('mousemove', (e) => {
+  targetElement.addEventListener('mousemove', (e) => {
     const now = Date.now();
     if (now - lastMove < 16) return;
     lastMove = now;
 
-    const rect = remoteVideo.getBoundingClientRect();
+    const rect = targetElement.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -540,24 +593,24 @@ function setupViewerInputListeners() {
     sendControlEvent({ type: 'mousemove', x, y });
   });
 
-  remoteVideo.addEventListener('mousedown', (e) => {
-    const rect = remoteVideo.getBoundingClientRect();
+  targetElement.addEventListener('mousedown', (e) => {
+    const rect = targetElement.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
     sendControlEvent({ type: 'mousedown', button: e.button, x, y });
   });
 
-  remoteVideo.addEventListener('mouseup', (e) => {
-    const rect = remoteVideo.getBoundingClientRect();
+  targetElement.addEventListener('mouseup', (e) => {
+    const rect = targetElement.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
     sendControlEvent({ type: 'mouseup', button: e.button, x, y });
   });
 
-  remoteVideo.addEventListener('contextmenu', (e) => e.preventDefault());
-  remoteVideo.addEventListener('wheel', (e) => {
+  targetElement.addEventListener('contextmenu', (e) => e.preventDefault());
+  targetElement.addEventListener('wheel', (e) => {
     e.preventDefault();
     sendControlEvent({ type: 'wheel', deltaY: e.deltaY });
   }, { passive: false });
@@ -593,14 +646,10 @@ function createPeerConnection() {
       updateStatusBadge('connected', 'Conectado (Ao Vivo)');
       if (currentRole === 'viewer') {
         videoPlaceholder.style.display = 'none';
-        remoteVideo.play().catch(e => {});
+        if (remoteVideo) remoteVideo.play().catch(e => {});
       }
     } else if (state === 'failed' || state === 'disconnected') {
       updateStatusBadge('disconnected', `WebRTC ${state}`);
-      if (state === 'failed' && peerConnection) {
-        addLog('warning', 'Tentando recuperar conexão WebRTC via TURN Relay...');
-        try { peerConnection.restartIce(); } catch (e) {}
-      }
     }
   };
 
@@ -610,21 +659,24 @@ function createPeerConnection() {
     if (iceState === 'connected' || iceState === 'completed') {
       if (currentRole === 'viewer') {
         videoPlaceholder.style.display = 'none';
-        remoteVideo.play().catch(e => {});
+        if (remoteVideo) remoteVideo.play().catch(e => {});
       }
     }
   };
 
   peerConnection.ontrack = (event) => {
-    addLog('webrtc', '📺 Stream de vídeo recebido! Exibindo imagem remota...');
-    remoteVideo.srcObject = event.streams[0];
-    remoteVideo.muted = true;
-    remoteVideo.play().then(() => {
-      videoPlaceholder.style.display = 'none';
-    }).catch(err => {
-      console.log('Play error:', err);
-      videoPlaceholder.style.display = 'none';
-    });
+    addLog('webrtc', '📺 Stream H.264 recebido! Exibindo modo WebRTC...');
+    if (remoteVideo) {
+      remoteVideo.style.display = 'block';
+      if (remoteCanvas) remoteCanvas.style.display = 'none';
+      remoteVideo.srcObject = event.streams[0];
+      remoteVideo.muted = true;
+      remoteVideo.play().then(() => {
+        videoPlaceholder.style.display = 'none';
+      }).catch(err => {
+        videoPlaceholder.style.display = 'none';
+      });
+    }
   };
 }
 
@@ -649,6 +701,7 @@ function closePeerConnection() {
 }
 
 function resetApp() {
+  stopHostFrameRelay();
   closePeerConnection();
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
   currentRole = null;
@@ -717,7 +770,7 @@ fullscreenToggleBtn.addEventListener('click', () => {
   else document.exitFullscreen();
 });
 
-// Inicialização automática: Conecta ao Servidor Pré-Configurado na Nuvem (com Fallback Local)
+// Inicialização automática: Conecta ao Servidor Pré-Configurado na Nuvem
 window.addEventListener('DOMContentLoaded', async () => {
   await initDeviceIdentity();
   const targetServerUrl = await getPreconfiguredServerUrl();

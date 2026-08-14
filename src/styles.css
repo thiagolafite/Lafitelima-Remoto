@@ -864,7 +864,8 @@ button {
   justify-content: center;
 }
 
-#remoteVideo {
+#remoteVideo,
+#remoteCanvas {
   width: 100%;
   height: 100%;
   object-fit: contain;

@@ -155,6 +155,23 @@ function startServer(port = 8080) {
             break;
           }
 
+          case 'screen-frame': {
+            if (ws.role === 'host' && ws.currentViewerWs && ws.currentViewerWs.readyState === ws.OPEN) {
+              sendJson(ws.currentViewerWs, { type: 'screen-frame', frameData: data.frameData });
+            }
+            break;
+          }
+
+          case 'remote-input': {
+            if (ws.role === 'viewer' && ws.targetDeviceId) {
+              const targetHost = activeHosts.get(ws.targetDeviceId);
+              if (targetHost && targetHost.ws.readyState === ws.OPEN) {
+                sendJson(targetHost.ws, { type: 'remote-input', payload: data.payload });
+              }
+            }
+            break;
+          }
+
           default:
             break;
         }

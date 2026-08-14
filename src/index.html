@@ -95,7 +95,7 @@
         </div>
       </div>
 
-      <!-- TELA DE TRANSMISSÃO HOST ATIVA (LIMPA SEM ESPELHAMENTO INFINITO) -->
+      <!-- TELA DE TRANSMISSÃO HOST ATIVA -->
       <section id="hostView" class="view-section">
         <div class="card host-active-card">
           <div class="host-active-header">
@@ -117,7 +117,7 @@
         </div>
       </section>
 
-      <!-- TELA VIEWER (PLAYER EM TEMPO REAL) -->
+      <!-- TELA VIEWER (PLAYER DUAL ENGINE: WEBRTC + WEBSOCKET CANVAS TURBO RELAY) -->
       <section id="viewerView" class="view-section">
         <div class="viewer-wrapper" id="viewerWrapper">
           
@@ -144,10 +144,11 @@
           </div>
 
           <div class="video-container">
-            <video id="remoteVideo" autoplay playsinline muted></video>
+            <video id="remoteVideo" autoplay playsinline muted style="display: none;"></video>
+            <canvas id="remoteCanvas"></canvas>
             <div id="videoPlaceholder" class="video-placeholder">
               <div class="spinner"></div>
-              <p id="placeholderText">Estabelecendo conexão direta com o computador remoto...</p>
+              <p id="placeholderText">Conectando ao computador remoto...</p>
             </div>
           </div>
 
