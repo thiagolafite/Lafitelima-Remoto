@@ -1,4 +1,4 @@
 {
-  "serverUrl": "wss://openremote.glitch.me",
-  "comment": "URL do Servidor na Nuvem pré-configurada. Para conectar entre cidades/redes diferentes sem digitar nada no app, coloque a URL do seu servidor de sinalização online aqui."
+  "serverUrl": "wss://lafitelima-remoto.onrender.com",
+  "comment": "URL Oficial do Servidor de Sinalização na Nuvem Render (Conexão Global Casa <-> Trabalho)"
 }
