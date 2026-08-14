@@ -439,7 +439,9 @@ async function captureScreenStream(sourceId) {
       }
     };
     localStream = await navigator.mediaDevices.getUserMedia(constraints);
-    hostLocalPreview.srcObject = localStream;
+    if (hostLocalPreview) {
+      hostLocalPreview.srcObject = localStream;
+    }
   } catch (err) {
     addLog('warning', `Captura específica falhou. Usando captura desktop genérica...`);
     try {
@@ -447,7 +449,9 @@ async function captureScreenStream(sourceId) {
         audio: false,
         video: { mandatory: { chromeMediaSource: 'desktop' } }
       });
-      hostLocalPreview.srcObject = localStream;
+      if (hostLocalPreview) {
+        hostLocalPreview.srcObject = localStream;
+      }
     } catch (e) {
       addLog('error', `Erro na captura de tela: ${e.message}`);
       throw e;
