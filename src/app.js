@@ -395,25 +395,27 @@ function connectToDeviceDirect(targetDeviceId, targetDeviceName, passwordInput) 
 async function loadScreenSources() {
   try {
     const sources = await window.electronAPI.getDesktopSources();
-    screenSelect.innerHTML = '';
-    sources.forEach(source => {
-      const option = document.createElement('option');
-      option.value = source.id;
-      option.textContent = source.name;
-      screenSelect.appendChild(option);
-    });
+    if (screenSelect) {
+      screenSelect.innerHTML = '';
+      sources.forEach(source => {
+        const option = document.createElement('option');
+        option.value = source.id;
+        option.textContent = source.name;
+        screenSelect.appendChild(option);
+      });
+
+      screenSelect.onchange = async () => {
+        await captureScreenStream(screenSelect.value);
+        if (peerConnection && localStream) {
+          const videoTrack = localStream.getVideoTracks()[0];
+          const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) sender.replaceTrack(videoTrack);
+        }
+      };
+    }
 
     const targetId = (sources && sources.length > 0) ? sources[0].id : null;
     await captureScreenStream(targetId);
-
-    screenSelect.onchange = async () => {
-      await captureScreenStream(screenSelect.value);
-      if (peerConnection && localStream) {
-        const videoTrack = localStream.getVideoTracks()[0];
-        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-        if (sender) sender.replaceTrack(videoTrack);
-      }
-    };
   } catch (err) {
     addLog('error', `Erro ao carregar fontes de tela: ${err.message}`);
   }
