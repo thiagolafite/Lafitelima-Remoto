@@ -1,0 +1,56 @@
+{
+  "name": "acesso-remoto",
+  "version": "1.0.0",
+  "description": "Aplicativo Desktop de Acesso Remoto Open Source - Estilo AnyDesk / RustDesk",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server/signaling-server.js",
+    "dist": "electron-packager . \"OpenRemote Desktop\" --platform=win32 --arch=x64 --out=dist --overwrite",
+    "build:installer": "npx electron-builder --win nsis",
+    "build:all": "npm run dist && npm run build:installer"
+  },
+  "build": {
+    "appId": "com.openremote.desktop",
+    "productName": "OpenRemote Desktop",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "server/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "OpenRemote Desktop",
+      "artifactName": "OpenRemote-Setup-${version}.${ext}"
+    }
+  },
+  "keywords": [
+    "remote-desktop",
+    "webrtc",
+    "electron",
+    "open-source"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.1.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
+  }
+}

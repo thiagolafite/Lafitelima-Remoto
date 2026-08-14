@@ -1,0 +1,930 @@
+/* ==========================================================================
+   ESTILOS GERAIS DA APLICAÇÃO (AnyDesk / RustDesk Theme)
+   ========================================================================== */
+
+:root {
+  --bg-dark: #080c14;
+  --bg-header: #0f172a;
+  --bg-card: #111827;
+  --bg-card-hover: #1f2937;
+  --bg-card-border: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --primary: #0284c7;
+  --primary-hover: #0369a1;
+  --primary-glow: rgba(2, 132, 199, 0.25);
+  --success: #10b981;
+  --success-hover: #059669;
+  --success-glow: rgba(16, 185, 129, 0.25);
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --warning: #f59e0b;
+  --accent-cyan: #38bdf8;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ==========================================================================
+   BARRA SUPERIOR (HEADER ESTILO RUSTDESK)
+   ========================================================================== */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 28px;
+  background-color: var(--bg-header);
+  border-bottom: 1px solid var(--bg-card-border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  color: var(--accent-cyan);
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+}
+
+.brand-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--accent-cyan);
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+}
+
+.status-badge.connected .status-dot {
+  background-color: var(--success);
+  box-shadow: 0 0 10px var(--success);
+}
+
+.status-badge.connecting .status-dot {
+  background-color: var(--warning);
+}
+
+.status-badge.disconnected .status-dot {
+  background-color: var(--danger);
+}
+
+/* ==========================================================================
+   CONTEÚDO PRINCIPAL (DASHBOARD GRID)
+   ========================================================================== */
+.main-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+}
+
+.view-section {
+  display: none;
+  width: 100%;
+  height: 100%;
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+.view-section.active {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.unattended-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 1000px;
+  height: 100%;
+  max-height: 600px;
+}
+
+.device-list-card {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  overflow-y: auto;
+  padding: 4px;
+  flex: 1;
+}
+
+.empty-devices {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  background-color: #0b1120;
+  border-radius: var(--radius-md);
+  border: 1px dashed #1e293b;
+}
+
+.spinner-small {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+}
+
+.device-card {
+  background-color: #0b1120;
+  border: 1px solid var(--bg-card-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.device-card:hover {
+  border-color: var(--accent-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+.device-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.device-icon-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.device-icon {
+  font-size: 1.5rem;
+}
+
+.device-name {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text-main);
+}
+
+.device-os {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.device-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.device-status.online { color: #34d399; }
+.device-status.offline { color: #f87171; }
+
+.btn-connect-direct {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--success);
+  color: #fff;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-connect-direct:hover {
+  background-color: var(--success-hover);
+  box-shadow: 0 4px 12px var(--success-glow);
+}
+
+.local-config-card {
+  padding: 18px 24px;
+}
+
+.config-grid-clean {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+.input-sm {
+  padding: 8px 12px !important;
+  font-size: 0.85rem !important;
+}
+
+.input-large {
+  padding: 14px 18px !important;
+  font-size: 1.1rem !important;
+}
+
+/* MODAL DE AUTENTICAÇÃO POR SENHA */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--accent-cyan);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modal-header h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-main);
+}
+
+.modal-header p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.config-item .label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.hostname-text {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  color: var(--accent-cyan);
+}
+
+/* ==========================================================================
+   CARTÕES DO DASHBOARD (ESTILO ANYDESK)
+   ========================================================================== */
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+.card-header-icon {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.card-header-icon svg {
+  color: var(--accent-cyan);
+  background-color: rgba(56, 189, 248, 0.1);
+  padding: 8px;
+  border-radius: var(--radius-md);
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
+.card-header-icon h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.card-header-icon p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* DESTAQUE DO SEU ID (ANYDESK STYLE) */
+.id-display-container {
+  background-color: #0b1120;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.05);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.id-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--accent-cyan);
+  margin-bottom: 8px;
+}
+
+.id-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.id-box strong {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #fff;
+}
+
+.btn-copy {
+  background-color: rgba(56, 189, 248, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-copy:hover {
+  background-color: rgba(56, 189, 248, 0.25);
+  transform: translateY(-1px);
+}
+
+/* FORMULÁRIOS & INPUTS */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #cbd5e1;
+}
+
+.input-wrapper {
+  display: flex;
+  gap: 8px;
+}
+
+input[type="text"], .select-input {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: #0b1120;
+  border: 1px solid #334155;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input[type="text"]:focus, .select-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.input-id-large {
+  font-size: 1.2rem !important;
+  letter-spacing: 2px;
+  padding: 14px 18px !important;
+  text-align: center;
+}
+
+/* HISTÓRICO DE SESSÕES RECENTES */
+.recent-sessions-container {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--bg-card-border);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 140px;
+}
+
+.empty-recent {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-align: center;
+  padding: 12px;
+  background-color: #0b1120;
+  border-radius: var(--radius-sm);
+}
+
+.recent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background-color: #0b1120;
+  border: 1px solid #1e293b;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recent-item:hover {
+  background-color: #1e293b;
+  border-color: var(--primary);
+}
+
+.recent-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-item-id {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.recent-item-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* BOTÕES (BUTTONS) */
+button {
+  cursor: pointer;
+  border: none;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  box-shadow: 0 4px 14px var(--primary-glow);
+}
+
+.btn-success {
+  background-color: var(--success);
+  color: #fff;
+}
+.btn-success:hover {
+  background-color: var(--success-hover);
+  box-shadow: 0 4px 14px var(--success-glow);
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover { background-color: var(--danger-hover); }
+
+.btn-secondary {
+  background-color: #334155;
+  color: var(--text-main);
+}
+.btn-secondary:hover { background-color: #475569; }
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-large {
+  padding: 14px 20px;
+  font-size: 0.95rem;
+}
+
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+}
+
+.btn-xs {
+  padding: 2px 6px;
+  font-size: 0.75rem;
+}
+
+.btn-text {
+  background: none;
+  color: var(--text-muted);
+}
+.btn-text:hover { color: var(--text-main); }
+
+.btn-icon {
+  background-color: #1e293b;
+  color: var(--text-main);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border: 1px solid #334155;
+}
+.btn-icon:hover { background-color: #334155; }
+
+.btn-icon-only {
+  padding: 10px;
+  aspect-ratio: 1;
+}
+
+/* ==========================================================================
+   TELA HOST ATIVA (TRANSMISSÃO)
+   ========================================================================== */
+.host-active-card {
+  width: 100%;
+  max-width: 760px;
+}
+
+.host-active-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.host-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pulse-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--danger);
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.room-info-box {
+  background-color: #0b1120;
+  border: 1px dashed #334155;
+  border-radius: var(--radius-sm);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.code-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.code-display strong {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  letter-spacing: 3px;
+  color: var(--accent-cyan);
+}
+
+.preview-container {
+  background-color: #000;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 16/9;
+  border: 1px solid var(--bg-card-border);
+  margin-bottom: 14px;
+}
+
+.preview-header {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: rgba(0, 0, 0, 0.75);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #fff;
+  z-index: 2;
+}
+
+#hostLocalPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.host-status-footer {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ==========================================================================
+   TELA VIEWER (PLAYER & TOOLBAR FLUTUANTE ANYDESK)
+   ========================================================================== */
+#viewerView {
+  padding: 0;
+}
+
+.viewer-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-floating-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  padding: 6px 18px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  z-index: 20;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  opacity: 0.2;
+  transition: opacity 0.3s ease;
+}
+
+.viewer-wrapper:hover .viewer-floating-toolbar {
+  opacity: 1;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.badge-live {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.toolbar-center {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar-btn {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border-radius: 20px;
+}
+
+.toolbar-btn:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.toolbar-btn.active {
+  background-color: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.video-container {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#remoteVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #000;
+}
+
+.video-placeholder {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 20px;
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   PAINEL DE LOGS DE SISTEMA
+   ========================================================================== */
+.log-panel {
+  background-color: #050811;
+  border-top: 1px solid var(--bg-card-border);
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.3s ease;
+}
+
+.log-panel.collapsed {
+  height: 32px;
+}
+
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 16px;
+  background-color: #0f172a;
+  border-bottom: 1px solid #1e293b;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.log-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-container {
+  flex: 1;
+  padding: 10px 16px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.log-line { margin-bottom: 4px; word-break: break-all; }
+.log-line.info { color: #94a3b8; }
+.log-line.success { color: #34d399; }
+.log-line.warning { color: #fbbf24; }
+.log-line.error { color: #f87171; }
+.log-line.webrtc { color: #818cf8; }
+.log-line.signaling { color: #38bdf8; }

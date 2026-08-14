@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenRemote Desktop - Acesso Remoto Zero-Configuração</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- BARRA SUPERIOR DE NAVEGAÇÃO -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logo-icon"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+          <div class="brand">
+            <span class="brand-name">OpenRemote</span>
+            <span class="brand-tag">ACESSO DIRETO E PRÁTICO</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div id="statusBadge" class="status-badge disconnected">
+          <span class="status-dot"></span>
+          <span id="statusText">Conectando...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL (DASHBOARD ZERO-CONFIG) -->
+    <main class="main-content">
+      
+      <section id="setupView" class="view-section active">
+        <div class="unattended-dashboard">
+          
+          <!-- SEÇÃO SUPERIOR: LISTA DE COMPUTADORES DISPONÍVEIS NA REDE/INTERNET -->
+          <div class="card device-list-card">
+            <div class="card-header-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <div>
+                <h3>Computadores Disponíveis para Acesso (1-Clique)</h3>
+                <p>Clique no computador desejado abaixo para iniciar a conexão remota instantaneamente.</p>
+              </div>
+            </div>
+
+            <!-- GRID DINÂMICO DE DISPOSITIVOS -->
+            <div id="deviceGrid" class="device-grid">
+              <div class="empty-devices">
+                <div class="spinner-small"></div>
+                <p>Conectando ao sistema e localizando computadores disponíveis...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO INFERIOR: CONFIGURAÇÃO LOCAL E SENHA -->
+          <div class="card local-config-card">
+            <div class="config-grid-clean">
+              <div class="config-item">
+                <span class="label">Este Computador:</span>
+                <strong id="myHostNameDisplay" class="hostname-text">Carregando...</strong>
+              </div>
+
+              <div class="config-item">
+                <span class="label">🔒 Senha de Acesso Não Supervisionado:</span>
+                <input type="password" id="unattendedPasswordInput" placeholder="Defina uma senha (opcional)" class="input-sm">
+              </div>
+
+              <!-- Escondido do frontend: a URL é preenchida no backend -->
+              <input type="hidden" id="serverUrlInput" value="ws://localhost:8080">
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- MODAL DE SENHA PARA CONECTAR AO COMPUTADOR DESTINO -->
+      <div id="passwordModal" class="modal-overlay">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>🔒 Autenticação de Segurança</h3>
+            <p>O computador <strong id="modalDeviceName">PC Remoto</strong> requer uma senha de acesso.</p>
+          </div>
+          <div class="form-group">
+            <label for="targetPasswordInput">Digite a Senha do Computador Remoto:</label>
+            <input type="password" id="targetPasswordInput" placeholder="Senha do computador destino" class="input-large">
+          </div>
+          <div class="modal-actions">
+            <button id="cancelPasswordBtn" class="btn-secondary">Cancelar</button>
+            <button id="confirmPasswordBtn" class="btn-success">⚡ Conectar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TELA DE TRANSMISSÃO HOST ATIVA -->
+      <section id="hostView" class="view-section">
+        <div class="card host-active-card">
+          <div class="host-active-header">
+            <div class="host-info">
+              <span class="pulse-dot red"></span>
+              <div>
+                <h2>Transmissão ao Vivo Ativa</h2>
+                <p id="hostActiveSubtext">Seu computador está sendo acessado remotamente</p>
+              </div>
+            </div>
+            <button id="stopHostBtn" class="btn-danger">Encerrar Sessão</button>
+          </div>
+
+          <div class="preview-container">
+            <div class="preview-header">Prévia Local do Monitor Transmitido</div>
+            <video id="hostLocalPreview" autoplay muted playsinline></video>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA VIEWER (PLAYER EM TEMPO REAL) -->
+      <section id="viewerView" class="view-section">
+        <div class="viewer-wrapper" id="viewerWrapper">
+          
+          <div class="viewer-floating-toolbar">
+            <div class="toolbar-left">
+              <span class="badge badge-live">AO VIVO</span>
+              <span id="viewerRoomCodeDisplay" class="session-title">Conectado a: ---</span>
+            </div>
+
+            <div class="toolbar-center">
+              <button id="controlToggleBtn" class="toolbar-btn active" title="Alternar Controle de Mouse/Teclado">
+                🎮 <span>Controle: ATIVO</span>
+              </button>
+              <button id="fullscreenToggleBtn" class="toolbar-btn" title="Alternar Tela Cheia">
+                📺 <span>Tela Cheia</span>
+              </button>
+            </div>
+
+            <div class="toolbar-right">
+              <button id="disconnectViewerBtn" class="btn-danger btn-sm">
+                ❌ Desconectar
+              </button>
+            </div>
+          </div>
+
+          <div class="video-container">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div id="videoPlaceholder" class="video-placeholder">
+              <div class="spinner"></div>
+              <p id="placeholderText">Estabelecendo conexão direta com o computador remoto...</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- PAINEL DE LOGS DE SISTEMA -->
+    <footer class="log-panel collapsed">
+      <div class="log-header">
+        <div class="log-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          <span>Logs de Conexão (Backend)</span>
+        </div>
+        <div class="log-controls">
+          <button id="clearLogsBtn" class="btn-text">Limpar</button>
+          <button id="toggleLogsBtn" class="btn-text">Expandir Logs</button>
+        </div>
+      </div>
+      <div id="logContainer" class="log-container">
+        <div class="log-line info">[Sistema] OpenRemote Desktop pronto. Conectando automaticamente...</div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
