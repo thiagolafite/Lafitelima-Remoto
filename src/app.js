@@ -1,26 +1,44 @@
 /**
- * LÓGICA PRINCIPAL DO CLIENTE (Conexão Global Zero-Config - Casa <-> Trabalho)
- * =========================================================================
+ * LÓGICA PRINCIPAL DO CLIENTE (Conexão Global com STUN/TURN Relay - Casa <-> Trabalho)
+ * ===================================================================================
  * 
- * Conecta-se automaticamente ao Servidor Público de Sinalização na Nuvem (wss://)
- * permitindo o acesso remoto entre computadores em cidades/redes diferentes sem
- * precisar digitar nenhum IP.
+ * Inclui servidores TURN Relay (Porta 443 TCP/UDP) para furar firewalls corporativos
+ * estritos, garantindo que o vídeo e o controle funcionem mesmo atrás de roteadores restritos.
  */
 
-// Servidores STUN Públicos da Google e Mozilla para perfuração de roteadores/firewalls (NAT Traversal)
+// Lista completa de servidores STUN + TURN Relay (Porta 443 TCP/HTTPS) para furar Firewalls Corporativos
 const WEBRTC_CONFIG = {
   iceServers: [
+    // STUN da Google e Mozilla
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
     { urls: 'stun:stun4.l.google.com:19302' },
-    { urls: 'stun:stun.services.mozilla.com' }
+    { urls: 'stun:stun.services.mozilla.com' },
+    
+    // TURN Relay OpenRelay (Porta 80 e 443 TCP/UDP - Bypassa Firewalls Empresariais)
+    { urls: 'stun:openrelay.metered.ca:80' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelay',
+      credential: 'openrelay'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelay',
+      credential: 'openrelay'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelay',
+      credential: 'openrelay'
+    }
   ],
   iceCandidatePoolSize: 10
 };
 
-// URL padrão do Servidor de Sinalização na Nuvem para Conexão Global
+// URL oficial do Servidor de Sinalização na Nuvem
 const DEFAULT_CLOUD_SERVER = 'wss://lafitelima-remoto.onrender.com';
 const DEFAULT_LOCAL_SERVER = 'ws://localhost:8080';
 
@@ -226,7 +244,7 @@ async function handleSignalingMessage(data) {
       break;
 
     case 'start-webrtc-stream':
-      addLog('signaling', '⚡ Conexão de 1-Clique recebida! Transmitindo tela via WebRTC STUN...');
+      addLog('signaling', '⚡ Conexão de 1-Clique recebida! Transmitindo tela via WebRTC STUN/TURN...');
       currentRole = 'host';
       showView('host');
       await loadScreenSources();
@@ -234,7 +252,7 @@ async function handleSignalingMessage(data) {
       break;
 
     case 'connecting-to-host':
-      addLog('info', `Iniciando travessia P2P com "${deviceName}"...`);
+      addLog('info', `Iniciando negociação de firewall (STUN/TURN Relay) com "${deviceName}"...`);
       break;
 
     case 'auth-failed':
@@ -247,14 +265,14 @@ async function handleSignalingMessage(data) {
 
     case 'offer':
       if (currentRole === 'viewer') {
-        addLog('webrtc', '📥 SDP Offer recebido! Negociando P2P...');
+        addLog('webrtc', '📥 SDP Offer recebido! Conectando via TURN Relay...');
         await handleOfferReceived(offer);
       }
       break;
 
     case 'answer':
       if (currentRole === 'host') {
-        addLog('webrtc', '📥 SDP Answer recebido! Conexão concluída.');
+        addLog('webrtc', '📥 SDP Answer recebido! Handshake de vídeo concluído.');
         await handleAnswerReceived(answer);
       }
       break;
@@ -371,7 +389,7 @@ function connectToDeviceDirect(targetDeviceId, targetDeviceName, passwordInput) 
 }
 
 /* ==========================================================================
-   3. CAPTURA DE TELA E WEBRTC
+   3. CAPTURA DE TELA E WEBRTC (COM FALLBACKS E DIAGNÓSTICO TURN)
    ========================================================================== */
 
 async function loadScreenSources() {
@@ -385,7 +403,8 @@ async function loadScreenSources() {
       screenSelect.appendChild(option);
     });
 
-    await captureScreenStream(sources[0].id);
+    const targetId = (sources && sources.length > 0) ? sources[0].id : null;
+    await captureScreenStream(targetId);
 
     screenSelect.onchange = async () => {
       await captureScreenStream(screenSelect.value);
@@ -396,19 +415,19 @@ async function loadScreenSources() {
       }
     };
   } catch (err) {
-    addLog('error', `Erro ao carregar tela: ${err.message}`);
+    addLog('error', `Erro ao carregar fontes de tela: ${err.message}`);
   }
 }
 
 async function captureScreenStream(sourceId) {
   if (localStream) localStream.getTracks().forEach(t => t.stop());
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({
+    const constraints = {
       audio: false,
       video: {
         mandatory: {
           chromeMediaSource: 'desktop',
-          chromeMediaSourceId: sourceId,
+          chromeMediaSourceId: sourceId || undefined,
           minWidth: 1280,
           maxWidth: 1920,
           minHeight: 720,
@@ -416,11 +435,21 @@ async function captureScreenStream(sourceId) {
           maxFrameRate: 30
         }
       }
-    });
+    };
+    localStream = await navigator.mediaDevices.getUserMedia(constraints);
     hostLocalPreview.srcObject = localStream;
   } catch (err) {
-    addLog('error', `Erro na captura de tela: ${err.message}`);
-    throw err;
+    addLog('warning', `Captura específica falhou. Usando captura desktop genérica...`);
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { mandatory: { chromeMediaSource: 'desktop' } }
+      });
+      hostLocalPreview.srcObject = localStream;
+    } catch (e) {
+      addLog('error', `Erro na captura de tela: ${e.message}`);
+      throw e;
+    }
   }
 }
 
@@ -553,6 +582,7 @@ function createPeerConnection() {
 
   peerConnection.onconnectionstatechange = () => {
     const state = peerConnection.connectionState;
+    addLog('webrtc', `Estado WebRTC: ${state.toUpperCase()}`);
     if (state === 'connected') {
       updateStatusBadge('connected', 'Conectado (Ao Vivo)');
       if (currentRole === 'viewer') videoPlaceholder.style.display = 'none';
@@ -561,7 +591,16 @@ function createPeerConnection() {
     }
   };
 
+  peerConnection.oniceconnectionstatechange = () => {
+    const iceState = peerConnection.iceConnectionState;
+    addLog('webrtc', `ICE State: ${iceState.toUpperCase()}`);
+    if (iceState === 'connected' || iceState === 'completed') {
+      if (currentRole === 'viewer') videoPlaceholder.style.display = 'none';
+    }
+  };
+
   peerConnection.ontrack = (event) => {
+    addLog('webrtc', '📺 Stream de vídeo recebido! Exibindo imagem remota...');
     remoteVideo.srcObject = event.streams[0];
     videoPlaceholder.style.display = 'none';
   };
@@ -579,6 +618,7 @@ function closePeerConnection() {
   if (peerConnection) {
     peerConnection.onicecandidate = null;
     peerConnection.onconnectionstatechange = null;
+    peerConnection.oniceconnectionstatechange = null;
     peerConnection.ontrack = null;
     peerConnection.ondatachannel = null;
     peerConnection.close();
